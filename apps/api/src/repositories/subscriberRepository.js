@@ -1,4 +1,4 @@
-const db = require('../db');
+const db = require('../db/index.js');
 
 /**
  * Grabs all phone numbers subscribed to a specific route for the SMS blast.

@@ -3,6 +3,7 @@
 		"dbmate": "^2.33.0"
 	},
 	"dependencies": {
+		"africastalking": "^0.8.0",
 		"cors": "^2.8.6",
 		"dotenv": "^17.4.2",
 		"express": "^5.2.1",

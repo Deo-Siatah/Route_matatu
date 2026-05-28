@@ -1,5 +1,6 @@
 // saccoRepository.js
-const db = require('../db');
+// const db = require('../../../../packages/db');
+const db = require('../db/index.js');
 
 async function createSacco(name, contactEmail) {
     const query = `

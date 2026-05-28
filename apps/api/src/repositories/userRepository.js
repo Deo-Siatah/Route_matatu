@@ -1,5 +1,5 @@
 // userRepository.js
-const db = require('../db');
+const db = require('../../../../packages/db');
 
 async function createUser(saccoId, email, passwordHash, role) {
     const query = `
