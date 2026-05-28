@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
     devDependencies:
       dbmate:
         specifier: ^2.33.0
@@ -53,6 +57,10 @@ packages:
     resolution: {integrity: sha512-UNyMVmEt+AS0xXrcPIHtSRF8eMgh9YJDUyW2S/l8QO/yB8uGT4eO1g18g+4GKdkPWVY9NHUTA1584jvWHK57JQ==}
     hasBin: true
 
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
+
 snapshots:
 
   '@dbmate/darwin-arm64@2.33.0':
@@ -85,3 +93,5 @@ snapshots:
       '@dbmate/linux-ia32': 2.33.0
       '@dbmate/linux-x64': 2.33.0
       '@dbmate/win32-x64': 2.33.0
+
+  dotenv@17.4.2: {}

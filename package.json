@@ -1,5 +1,8 @@
 {
 	"devDependencies": {
 		"dbmate": "^2.33.0"
+	},
+	"dependencies": {
+		"dotenv": "^17.4.2"
 	}
 }
