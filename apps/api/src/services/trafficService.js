@@ -1,6 +1,8 @@
 // trafficService.js
 const { getPool } = require('../db');
 const gamificationRepo = require('../repositories/gamificationRepository');
+const { sms } = require('../config/africastalking'); // Import the initialized SMS module
+const subscriberRepo = require('../repositories/subscriberRepository');
 
 // Assuming you have a reportRepository with an insertReport function
 // that accepts (client, routeId, phoneNumber, statusType, customMessage)
@@ -42,6 +44,28 @@ async function submitReportAndAwardPoints(routeId, phoneNumber, statusType, cust
     } finally {
         // 6. Release the client back to the pool so the server doesn't crash from memory leaks
         client.release();
+    }
+}
+
+async function triggerSmsAlerts(routeId, statusType, customMessage) {
+    try {
+        const phoneNumbers = await subscriberRepo.getSubscribersByRoute(routeId);
+        if (phoneNumbers.length === 0) return; // No subscribers to alert
+
+        const message = `RouteReady Alert: ${statusType} reported on Route ${routeId}. Detail: ${customMessage}`;
+
+        // Call the AT SMS API
+        const options = {
+            to: phoneNumbers, // Array of phone numbers e.g., ['+254711...', '+254722...']
+            message: message,
+            // from: "RouteReady" // Optional: Requires a registered alphanumeric sender ID
+        };
+
+        const response = await sms.send(options);
+        console.log(`[AT SMS SUCCESS] Sent to ${phoneNumbers.length} recipients.`, response);
+
+    } catch (error) {
+        console.error("[AT SMS ERROR] Failed to send alerts:", error);
     }
 }
 
