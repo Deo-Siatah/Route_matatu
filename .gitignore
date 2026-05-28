@@ -1,0 +1,52 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.* # Optional: for .env.local, .env.test, etc.
+
+# OS-related
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Build files
+dist/
+build/
+
+# Uploaded files (if using local storage)
+uploads/
+public/uploads/
+
+# Coverage reports (if testing)
+coverage/
+
+# Temp files
+*.swp
+*.tmp
+*.temp
+
+# Optional: if using PM2
+.pnpm-debug.log
+ecosystem.config.js
+
+# Optional: if using jest
+jest-test-results.json
+
+# Optional: logs for MongoDB (if dumping data locally)
+dump/

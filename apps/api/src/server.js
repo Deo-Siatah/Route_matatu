@@ -1,0 +1,1 @@
+DBMATE_MIGRATIONS_DIR="packages/database/db/migrations"
