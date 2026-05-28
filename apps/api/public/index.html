@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteReady | Live Portals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col font-sans">
+    
+    <nav class="bg-gray-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <span class="text-xl font-bold tracking-wider text-blue-400">RouteReady</span>
+                    
+                    <button onclick="switchTab('commuter')" id="btn-commuter" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-700 text-white transition">Commuter Portal</button>
+                    <button onclick="switchTab('dispatch')" id="btn-dispatch" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition">SACCO Dispatch</button>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block">
+                        <span class="text-xs text-gray-400 uppercase tracking-widest">Live System Time</span><br>
+                        <span id="liveClock" class="font-mono text-lg font-semibold text-green-400">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-8 max-w-7xl mx-auto w-full">
+
+        <section id="view-commuter" class="tab-content active max-w-3xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">Check Your Route</h1>
+                <p class="text-gray-500">Select your daily commute to see real-time, crowd-sourced traffic conditions.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Select Route</label>
+                <select id="commuter-route-select" class="w-full text-lg border-2 border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:ring-0 transition" onchange="renderCommuterCard()">
+                    <option disabled selected>Loading routes from database...</option>
+                </select>
+
+                <div id="commuter-status-card" class="mt-8 p-6 rounded-lg border-2 border-gray-100 text-center bg-gray-50 transition-all">
+                    <p class="text-gray-500">Loading live data...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-dispatch" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Fleet Control Center</h1>
+                <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow">SMS Gateway: Active</div>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+                
+                <div class="w-full lg:w-2/3 bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="bg-gray-800 text-white px-6 py-4 font-semibold tracking-wider text-sm">GLOBAL ROUTE FEED</div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Time</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Route</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-body" class="bg-white divide-y divide-gray-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="w-full lg:w-1/3 bg-white rounded-xl shadow-lg overflow-hidden h-fit border-t-4 border-blue-600">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h3 class="font-bold text-gray-800">Dispatcher Override</h3>
+                        <p class="text-xs text-gray-500">Updates systems and sends SMS to subscribers.</p>
+                    </div>
+                    
+                    <form id="dispatchForm" class="p-6 space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Target Route</label>
+                            <select id="routeId" class="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-50" required>
+                                <option disabled selected>Loading routes...</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Condition</label>
+                            <select id="statusType" class="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-50" required>
+                                <option value="Clear">🟢 Clear (Resolves Traffic)</option>
+                                <option value="Heavy Traffic">🟡 Heavy Traffic (Triggers SMS Warning)</option>
+                                <option value="Accident">🔴 Accident/Stall (Triggers SMS Warning)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Broadcast Message</label>
+                            <input type="text" id="customMessage" placeholder="e.g. Cleared by police, traffic flowing" class="mt-1 block w-full border border-gray-300 rounded-md p-2" required>
+                        </div>
+
+                        <input type="hidden" id="phoneNumber" value="+254_DISPATCH">
+
+                        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center gap-2">
+                            Update & Send SMS
+                        </button>
+                        <p id="formFeedback" class="text-sm text-green-600 font-bold text-center hidden">✓ Broadcast successful!</p>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let globalReports = []; 
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('btn-commuter').className = "px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition";
+            document.getElementById('btn-dispatch').className = "px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition";
+            
+            document.getElementById(`view-${tabName}`).classList.add('active');
+            document.getElementById(`btn-${tabName}`).className = "px-3 py-2 rounded-md text-sm font-medium bg-gray-700 text-white transition";
+        }
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString('en-US', { hour12: true });
+        }, 1000);
+
+        // --- NEW: FETCH ROUTES FROM DB ---
+        async function loadDatabaseRoutes() {
+            try {
+                const response = await fetch('/api/routes');
+                const routes = await response.json();
+                
+                const commuterSelect = document.getElementById('commuter-route-select');
+                const dispatchSelect = document.getElementById('routeId');
+                
+                // Clear loading messages
+                commuterSelect.innerHTML = '';
+                dispatchSelect.innerHTML = '';
+
+                // Dynamically inject options from your database
+                routes.forEach(route => {
+                    commuterSelect.add(new Option(route.name, route.id));
+                    dispatchSelect.add(new Option(route.name, route.id));
+                });
+
+            } catch (error) { console.error("Failed to load routes from DB:", error); }
+        }
+
+        async function fetchLiveReports() {
+            try {
+                const response = await fetch('/api/live-dashboard');
+                globalReports = await response.json();
+                
+                renderDispatchTable();
+                renderCommuterCard(); 
+            } catch (error) { console.error("Fetch error:", error); }
+        }
+
+        function renderDispatchTable() {
+            const tbody = document.getElementById('dashboard-body');
+            tbody.innerHTML = ''; 
+
+            globalReports.forEach(report => {
+                let statusColor = "bg-green-100 text-green-800";
+                if (report.status_type === 'Heavy Traffic') statusColor = "bg-yellow-100 text-yellow-800";
+                if (report.status_type === 'Accident') statusColor = "bg-red-100 text-red-800";
+
+                const timeString = new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                const row = `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-600">${timeString}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${report.route_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm ${statusColor}">${report.status_type}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${report.custom_message} <br><span class="text-xs text-gray-400">By: ${report.phone_number}</span></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function renderCommuterCard() {
+            const selectEl = document.getElementById('commuter-route-select');
+            // Check if dropdown is empty (during initial load)
+            if (selectEl.options.length === 0) return; 
+
+            const routeName = selectEl.options[selectEl.selectedIndex].text;
+            const card = document.getElementById('commuter-status-card');
+            
+            const latestReport = globalReports.find(r => r.route_name === routeName);
+
+            if (!latestReport || latestReport.status_type === 'Clear') {
+                card.className = "mt-8 p-8 rounded-xl border-2 border-green-200 bg-green-50 shadow-inner transition-all";
+                card.innerHTML = `
+                    <div class="text-green-500 text-5xl mb-4">🟢</div>
+                    <h2 class="text-3xl font-bold text-green-800 mb-2">Route is Clear</h2>
+                    <p class="text-green-600 text-lg">Traffic is flowing normally. Have a safe trip!</p>
+                `;
+            } else {
+                const isAccident = latestReport.status_type === 'Accident';
+                const colorBase = isAccident ? 'red' : 'yellow';
+                const emoji = isAccident ? '🔴' : '🟡';
+                const timeString = new Date(latestReport.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                card.className = `mt-8 p-8 rounded-xl border-2 border-${colorBase}-200 bg-${colorBase}-50 shadow-inner transition-all`;
+                card.innerHTML = `
+                    <div class="text-5xl mb-4">${emoji}</div>
+                    <h2 class="text-3xl font-bold text-${colorBase}-800 mb-2">${latestReport.status_type}</h2>
+                    <p class="text-${colorBase}-900 text-xl font-semibold mb-4">"${latestReport.custom_message}"</p>
+                    <div class="inline-block bg-white px-4 py-2 rounded-full text-sm font-bold text-gray-500 shadow">
+                        Reported at ${timeString}
+                    </div>
+                `;
+            }
+        }
+
+        // --- MASTER INITIALIZATION SEQUENCE ---
+        async function bootApp() {
+            await loadDatabaseRoutes(); // 1. Load routes from DB first
+            await fetchLiveReports();   // 2. Then load traffic data
+            setInterval(fetchLiveReports, 3000); // 3. Start auto-refreshing traffic
+        }
+        
+        bootApp(); // Kick it off
+
+        document.getElementById('dispatchForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const payload = {
+                routeId: document.getElementById('routeId').value,
+                statusType: document.getElementById('statusType').value,
+                customMessage: document.getElementById('customMessage').value,
+                phoneNumber: document.getElementById('phoneNumber').value
+            };
+
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const feedback = document.getElementById('formFeedback');
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 4000);
+                    
+                    document.getElementById('customMessage').value = '';
+                    fetchLiveReports(); 
+                }
+            } catch (error) {
+                alert("Failed to send update.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

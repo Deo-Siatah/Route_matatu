@@ -1,6 +1,15 @@
 const routeRepo = require('../repositories/routeRepository');
 const trafficService = require('../services/trafficService');
 
+// THE HACKATHON MEMORY MAP: Hardcode alternatives so you don't need a DB migration today
+const alternativeRoutesMap = {
+    1: "Route 5 (Langata Rd)", // If Ngong Rd (1) is blocked, suggest Langata
+    2: "Route 4 (Waiyaki Way)", // If Thika Rd (2) is blocked, suggest Waiyaki
+    3: "Route 2 (Thika Rd)",
+    4: "Route 2 (Thika Rd)",
+    5: "Route 1 (Ngong Rd)"
+};
+
 async function handleUssdRequest(req, res) {
     const { sessionId, serviceCode, phoneNumber, text } = req.body;
     
@@ -29,6 +38,11 @@ async function handleUssdRequest(req, res) {
 
                 if (status) {
                     responseText = `END Status: ${status.status_type}\nReport: ${status.custom_message}\nTime: ${new Date(status.created_at).toLocaleTimeString()}`;
+                    
+                    // NEW FEATURE: Append the alternative route if there is traffic or an accident!
+                    if (status.status_type !== 'Clear' && alternativeRoutesMap[routeId]) {
+                        responseText += `\n\nALT ROUTE: Try ${alternativeRoutesMap[routeId]}`;
+                    }
                 } else {
                     responseText = `END Route is currently clear. No recent delays reported.`;
                 }
