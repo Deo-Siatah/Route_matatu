@@ -1,62 +1,48 @@
+// trafficService.js
 const { getPool } = require('../db');
-const reportRepo = require('../repositories/reportRepository');
-const subscriberRepo = require('../repositories/subscriberRepository');
-// const logger = require('logger'); // Assuming you set up Winston
+const gamificationRepo = require('../repositories/gamificationRepository');
 
-/**
- * Handles the logic when a user submits a delay via USSD.
- * Uses a SQL Transaction to ensure data integrity.
- */
-async function handleNewTrafficReport(routeId, phoneNumber, statusType, customMessage) {
+// Assuming you have a reportRepository with an insertReport function
+// that accepts (client, routeId, phoneNumber, statusType, customMessage)
+
+async function submitReportAndAwardPoints(routeId, phoneNumber, statusType, customMessage) {
     const pool = getPool();
-    const client = await pool.connect(); // Grab a dedicated connection
+    const client = await pool.connect(); // Grab a dedicated connection for the transaction
 
     try {
-        // BEGIN TRANSACTION: If any query fails after this, none of it saves.
+        // 1. BEGIN the transaction
         await client.query('BEGIN');
 
-        // 1. Save the report and award the gamification points
-        const reportId = await reportRepo.createReportAndAwardPoints(
-            client, routeId, phoneNumber, statusType, customMessage
-        );
+        // 2. Insert the traffic report (Passing the transaction client)
+        const insertReportQuery = `
+            INSERT INTO reports (route_id, phone_number, status_type, custom_message) 
+            VALUES ($1, $2, $3, $4) RETURNING id;
+        `;
+        const reportResult = await client.query(insertReportQuery, [
+            routeId, phoneNumber, statusType, customMessage
+        ]);
+        const reportId = reportResult.rows[0].id;
 
-        // COMMIT TRANSACTION: Everything succeeded, save to database permanently.
+        // 3. Award 10 points to the user for contributing (Passing the same client)
+        const POINTS_REWARD = 10;
+        const newBalance = await gamificationRepo.upsertRoutePoints(client, phoneNumber, POINTS_REWARD);
+
+        // 4. COMMIT: Everything was successful. Save both queries to the database permanently.
         await client.query('COMMIT');
-        // logger.info(`Report ${reportId} saved. Points awarded to ${phoneNumber}.`);
-
-        // 2. Trigger the SMS Alert (BACKGROUND PROCESS)
-        // We do this AFTER the commit so users only get SMS for successful reports.
-        await triggerSmsAlerts(routeId, statusType, customMessage);
-
-        return true;
-
-    } catch (error) {
-        // ROLLBACK: Something broke! Undo the report insert and undo the points.
-        await client.query('ROLLBACK');
-        console.error("Transaction failed, rolled back:", error);
-        throw error; // Let the Controller handle telling the user there was an error
-    } finally {
-        client.release(); // Always return the connection to the pool
-    }
-}
-
-/**
- * Fetches subscribers and uses Africa's Talking SDK to send an SMS
- */
-async function triggerSmsAlerts(routeId, statusType, customMessage) {
-    try {
-        const phoneNumbers = await subscriberRepo.getSubscribersByRoute(routeId);
         
-        if (phoneNumbers.length === 0) return; // No one to alert
-
-        const message = `RouteReady Alert: ${statusType} reported on Route ${routeId}. Details: ${customMessage}`;
-
-        // TODO: Initialize Africa's Talking SDK and call sms.send() here
-        console.log(`[MOCK SMS] Sending to ${phoneNumbers.length} users: ${message}`);
+        console.log(`Success: Report ${reportId} logged. ${phoneNumber} now has ${newBalance} points.`);
+        return { success: true, reportId, newBalance };
 
     } catch (error) {
-        console.error("Failed to send SMS alerts:", error);
+        // 5. ROLLBACK: If EITHER the report insert OR the points insert fails, 
+        // cancel the entire operation so we don't have corrupted data.
+        await client.query('ROLLBACK');
+        console.error("Transaction failed! Rolled back to prevent data corruption:", error);
+        throw new Error("Failed to process report and points.");
+    } finally {
+        // 6. Release the client back to the pool so the server doesn't crash from memory leaks
+        client.release();
     }
 }
 
-module.exports = { handleNewTrafficReport };
+module.exports = { submitReportAndAwardPoints };
